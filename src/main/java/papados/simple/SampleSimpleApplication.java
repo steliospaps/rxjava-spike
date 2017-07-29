@@ -16,6 +16,14 @@
 
 package papados.simple;
 
+import java.util.Observable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -29,7 +37,7 @@ import papados.simple.service.HelloWorldService;
 @EnableAutoConfiguration
 @ComponentScan
 public class SampleSimpleApplication implements CommandLineRunner {
-
+	
 	// Simple example shows how a command line spring application can execute an
 	// injected bean service. Also demonstrates how you can use @Value to inject
 	// command line args ('--name=whatever') or application properties
@@ -40,9 +48,29 @@ public class SampleSimpleApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) {
 		System.out.println(this.helloWorldService.getHelloMessage());
+		Stream.iterate(0, i -> i+1)//
+		.limit(100)//
+		.map(i -> dispatch(i))//
+		.map(i -> getFutureResult(i))//
+		.forEach(i -> System.out.println(i));
+		
+	}
+
+	private String getFutureResult(Future<String> i) {
+		try {
+			return i.get();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public static void main(String[] args) throws Exception {
 		SpringApplication.run(SampleSimpleApplication.class, args);
+	}
+
+	private ScheduledExecutorService scheduler= Executors.newScheduledThreadPool(10);
+			
+	Future<String> dispatch(Integer i){
+		return scheduler.schedule(() -> "result "+i, 3, TimeUnit.SECONDS);
 	}
 }
